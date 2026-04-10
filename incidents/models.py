@@ -6,7 +6,6 @@ from django.db import models
 from django.db.models import Deferrable
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from parler.models import TranslatableModel, TranslatedFields
 
 from governanceplatform.settings import TIME_ZONE
 
@@ -21,18 +20,16 @@ from .globals import (
 
 
 # impacts of the incident, they are linked to sector
-class Impact(TranslatableModel):
+class Impact(models.Model):
     """Defines an impact."""
 
-    translations = TranslatedFields(
-        label=models.TextField(verbose_name=_("Label")),
-        headline=models.CharField(
-            verbose_name=_("Title"),
-            max_length=255,
-            blank=True,
-            default=None,
-            null=True,
-        ),
+    label = models.TextField(verbose_name=_("Label"))
+    headline = models.CharField(
+        verbose_name=_("Title"),
+        max_length=255,
+        blank=True,
+        default=None,
+        null=True,
     )
 
     regulations = models.ManyToManyField(
@@ -65,10 +62,7 @@ class Impact(TranslatableModel):
     )
 
     def __str__(self):
-        headline_translation = self.safe_translation_getter(
-            "headline", any_language=True
-        )
-        return headline_translation or ""
+        return self.headline or ""
 
     class Meta:
         verbose_name_plural = _("Impact")
@@ -76,10 +70,8 @@ class Impact(TranslatableModel):
 
 
 # category for the question (to order)
-class QuestionCategory(TranslatableModel):
-    translations = TranslatedFields(
-        label=models.CharField(verbose_name=_("Label"), max_length=255)
-    )
+class QuestionCategory(models.Model):
+    label = models.CharField(verbose_name=_("Label"), max_length=255)
     # name of the regulator who create the object
     creator_name = models.CharField(
         verbose_name=_("Creator name"),
@@ -98,8 +90,7 @@ class QuestionCategory(TranslatableModel):
     )
 
     def __str__(self):
-        label_translation = self.safe_translation_getter("label", any_language=True)
-        return label_translation or ""
+        return self.label or ""
 
     class Meta:
         verbose_name = _("Step in notification form")
@@ -107,7 +98,7 @@ class QuestionCategory(TranslatableModel):
 
 
 # questions asked during the Incident notification process
-class Question(TranslatableModel):
+class Question(models.Model):
     question_type = models.CharField(
         max_length=10,
         choices=QUESTION_TYPES,
@@ -120,10 +111,8 @@ class Question(TranslatableModel):
         max_length=255,
         unique=True,
     )  # reference to add context information on question
-    translations = TranslatedFields(
-        label=models.TextField(verbose_name=_("Label")),
-        tooltip=models.TextField(verbose_name=_("Tooltip"), blank=True, null=True),
-    )
+    label = models.TextField(verbose_name=_("Label"))
+    tooltip = models.TextField(verbose_name=_("Tooltip"), blank=True, null=True)
     # name of the regulator who create the object
     creator_name = models.CharField(
         verbose_name=_("Creator name"),
@@ -154,12 +143,7 @@ class Question(TranslatableModel):
         return str(self)
 
     def __str__(self):
-        return (
-            self.safe_translation_getter("label", any_language=True)
-            if self.language_code
-            and self.safe_translation_getter("label", any_language=True)
-            else ""
-        )
+        return self.label if self.label else ""
 
     class Meta:
         verbose_name_plural = _("Questions")
@@ -167,10 +151,8 @@ class Question(TranslatableModel):
 
 
 # answers for the question
-class PredefinedAnswer(TranslatableModel):
-    translations = TranslatedFields(
-        predefined_answer=models.TextField(verbose_name=_("Answer"))
-    )
+class PredefinedAnswer(models.Model):
+    predefined_answer = models.TextField(verbose_name=_("Answer"))
     question = models.ForeignKey(
         Question,
         verbose_name=_("Question"),
@@ -197,12 +179,7 @@ class PredefinedAnswer(TranslatableModel):
     )
 
     def __str__(self):
-        return (
-            self.safe_translation_getter("predefined_answer", any_language=True)
-            if self.language_code
-            and self.safe_translation_getter("predefined_answer", any_language=True)
-            else ""
-        )
+        return self.predefined_answer if self.predefined_answer else ""
 
     class Meta:
         verbose_name_plural = _("Question - predefined answers")
@@ -210,21 +187,19 @@ class PredefinedAnswer(TranslatableModel):
 
 
 # Email sent from regulator to operator
-class Email(TranslatableModel, models.Model):
-    translations = TranslatedFields(
-        subject=models.CharField(
-            verbose_name=_("Subject"),
-            max_length=255,
-        ),
-        content=models.TextField(
-            verbose_name=_("Content"),
-            help_text=_(
-                """Available placeholders: #INCIDENT_NOTIFICATION_DATE#,
-                #INCIDENT_DETECTION_DATE#,
-                #INCIDENT_STARTING_DATE#,
-                #INCIDENT_ID#,
-                #DEADLINE#"""
-            ),
+class Email(models.Model):
+    subject = models.CharField(
+        verbose_name=_("Subject"),
+        max_length=255,
+    )
+    content = models.TextField(
+        verbose_name=_("Content"),
+        help_text=_(
+            """Available placeholders: #INCIDENT_NOTIFICATION_DATE#,
+            #INCIDENT_DETECTION_DATE#,
+            #INCIDENT_STARTING_DATE#,
+            #INCIDENT_ID#,
+            #DEADLINE#"""
         ),
     )
     name = models.CharField(verbose_name=_("Name"), max_length=255)
@@ -255,14 +230,12 @@ class Email(TranslatableModel, models.Model):
 
 # Workflow for each sector_regulation, N workflow for 1 reglementation,
 # 1 Workflow for N recommendation ?
-class Workflow(TranslatableModel):
+class Workflow(models.Model):
     name = models.CharField(verbose_name=_("Name"), max_length=255, unique=True)
 
-    translations = TranslatedFields(
-        label=models.CharField(verbose_name=_("Label"), max_length=255),
-        description=models.TextField(
-            blank=True, default="", null=True, verbose_name=_("Description")
-        ),
+    label = models.CharField(verbose_name=_("Label"), max_length=255)
+    description = models.TextField(
+        blank=True, default="", null=True, verbose_name=_("Description")
     )
     is_impact_needed = models.BooleanField(
         default=False, verbose_name=_("Impacts disclosure required")
@@ -296,8 +269,7 @@ class Workflow(TranslatableModel):
     )
 
     def __str__(self):
-        label_translation = self.safe_translation_getter("label", any_language=True)
-        return label_translation or ""
+        return self.label or ""
 
     class Meta:
         verbose_name_plural = _("Incident reports")
@@ -307,11 +279,9 @@ class Workflow(TranslatableModel):
 # link between a regulation and a regulator,
 # a regulator can only create a sector_regulation for the regulation the
 # admin platform has designated him
-class SectorRegulation(TranslatableModel):
-    translations = TranslatedFields(
-        # for exemple NIS for energy sector
-        name=models.CharField(verbose_name=_("Name"), max_length=255)
-    )
+class SectorRegulation(models.Model):
+    # for exemple NIS for energy sector
+    name = models.CharField(verbose_name=_("Name"), max_length=255)
     regulation = models.ForeignKey(
         "governanceplatform.Regulation",
         on_delete=models.CASCADE,
@@ -366,8 +336,7 @@ class SectorRegulation(TranslatableModel):
         verbose_name = _("Incident notification workflow")
 
     def __str__(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation or ""
+        return self.name or ""
 
 
 # link between sector regulation and workflows
@@ -469,10 +438,8 @@ class SectorRegulationWorkflow(models.Model):
 
 
 # for emailing during each workflow
-class SectorRegulationWorkflowEmail(TranslatableModel):
-    translations = TranslatedFields(
-        headline=models.CharField(verbose_name=_("Email subject"), max_length=255),
-    )
+class SectorRegulationWorkflowEmail(models.Model):
+    headline = models.CharField(verbose_name=_("Email subject"), max_length=255)
 
     sector_regulation_workflow = models.ForeignKey(
         SectorRegulationWorkflow,
@@ -496,14 +463,11 @@ class SectorRegulationWorkflowEmail(TranslatableModel):
         verbose_name = _("Reminder email")
 
     def __str__(self):
-        headline_translation = self.safe_translation_getter(
-            "headline", any_language=True
-        )
-        return headline_translation or ""
+        return self.headline or ""
 
     @admin.display(
         description=_("Regulation"),
-        ordering="sector_regulation_workflow__sector_regulation__regulation__translations__label",
+        ordering="sector_regulation_workflow__sector_regulation__regulation__label",
     )
     def regulation(self):
         return self.sector_regulation_workflow.sector_regulation.regulation

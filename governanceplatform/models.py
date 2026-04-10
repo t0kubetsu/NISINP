@@ -9,7 +9,6 @@ from django.db import models
 from django.db.models import Deferrable, Q
 from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
-from parler.models import TranslatableModel, TranslatedFields
 from phonenumber_field.modelfields import PhoneNumberField
 
 import governanceplatform
@@ -31,8 +30,8 @@ class ApplicationConfig(models.Model):
 
 
 # sector
-class Sector(TranslatableModel):
-    translations = TranslatedFields(name=models.CharField(_("Name"), max_length=100))
+class Sector(models.Model):
+    name = models.CharField(_("Name"), max_length=100)
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -62,16 +61,13 @@ class Sector(TranslatableModel):
     )
 
     def get_safe_translation(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation or ""
+        return self.name or ""
 
     def __str__(self):
-        name = self.safe_translation_getter("name", any_language=True)
-        if name and self.parent:
-            parent_name = self.parent.safe_translation_getter("name", any_language=True)
-            return parent_name + " → " + name
-        elif name and self.parent is None:
-            return name
+        if self.name and self.parent:
+            return self.parent.name + " → " + self.name
+        elif self.name and self.parent is None:
+            return self.name
         else:
             return ""
 
@@ -81,26 +77,23 @@ class Sector(TranslatableModel):
 
 
 # esssential services
-class Service(TranslatableModel):
-    translations = TranslatedFields(name=models.CharField(_("Name"), max_length=100))
+class Service(models.Model):
+    name = models.CharField(_("Name"), max_length=100)
     sector = models.ForeignKey(
         Sector, verbose_name=_("Sector"), on_delete=models.CASCADE
     )
     acronym = models.CharField(verbose_name=_("Acronym"), max_length=4)
 
     def __str__(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation if name_translation else ""
+        return self.name if self.name else ""
 
     class Meta:
         verbose_name = _("Service")
         verbose_name_plural = _("Services")
 
 
-class Functionality(TranslatableModel):
-    translations = TranslatedFields(
-        name=models.CharField(verbose_name=_("Name"), max_length=100)
-    )
+class Functionality(models.Model):
+    name = models.CharField(verbose_name=_("Name"), max_length=100)
 
     type = models.CharField(
         verbose_name=_("Type"),
@@ -111,8 +104,7 @@ class Functionality(TranslatableModel):
     )
 
     def __str__(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation or ""
+        return self.name or ""
 
     class Meta:
         constraints = [
@@ -127,18 +119,15 @@ class Functionality(TranslatableModel):
 
 
 # operator has type (critical, essential, etc.) who give access to functionalities
-class OperatorType(TranslatableModel):
-    translations = TranslatedFields(
-        type=models.CharField(verbose_name=_("Type"), max_length=100)
-    )
+class OperatorType(models.Model):
+    type = models.CharField(verbose_name=_("Type"), max_length=100)
     functionalities = models.ManyToManyField(
         Functionality,
         verbose_name=_("Functionalities"),
     )
 
     def __str__(self):
-        type_translation = self.safe_translation_getter("type", any_language=True)
-        return type_translation or ""
+        return self.type or ""
 
 
 # operator are companies
@@ -216,15 +205,13 @@ class Company(models.Model):
 
 
 # Regulator
-class Regulator(TranslatableModel):
-    translations = TranslatedFields(
-        name=models.CharField(max_length=64, verbose_name=_("Name")),
-        full_name=models.TextField(
-            blank=True, default="", null=True, verbose_name=_("Full name")
-        ),
-        description=models.TextField(
-            blank=True, default="", null=True, verbose_name=_("Description")
-        ),
+class Regulator(models.Model):
+    name = models.CharField(max_length=64, verbose_name=_("Name"))
+    full_name = models.TextField(
+        blank=True, default="", null=True, verbose_name=_("Full name")
+    )
+    description = models.TextField(
+        blank=True, default="", null=True, verbose_name=_("Description")
     )
     country = models.CharField(
         max_length=200,
@@ -246,8 +233,7 @@ class Regulator(TranslatableModel):
     )
 
     def __str__(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation or ""
+        return self.name or ""
 
     class Meta:
         verbose_name = _("Regulator")
@@ -255,15 +241,13 @@ class Regulator(TranslatableModel):
 
 
 # Observer
-class Observer(TranslatableModel):
-    translations = TranslatedFields(
-        name=models.CharField(default="", max_length=64, verbose_name=_("Name")),
-        full_name=models.TextField(
-            blank=True, default="", null=True, verbose_name=_("Full name")
-        ),
-        description=models.TextField(
-            blank=True, default="", null=True, verbose_name=_("Description")
-        ),
+class Observer(models.Model):
+    name = models.CharField(default="", max_length=64, verbose_name=_("Name"))
+    full_name = models.TextField(
+        blank=True, default="", null=True, verbose_name=_("Full name")
+    )
+    description = models.TextField(
+        blank=True, default="", null=True, verbose_name=_("Description")
     )
     country = models.CharField(
         max_length=200,
@@ -425,8 +409,7 @@ class Observer(TranslatableModel):
         return False
 
     def __str__(self):
-        name_translation = self.safe_translation_getter("name", any_language=True)
-        return name_translation or ""
+        return self.name or ""
 
     class Meta:
         verbose_name = _("Observer")
@@ -507,24 +490,24 @@ class User(AbstractUser, PermissionsMixin):
 
     @admin.display(
         description=_("Regulator"),
-        ordering="regulators__translations__name",
+        ordering="regulators__name",
     )
     def get_regulators(self):
         return ", ".join(
             [
-                regulator.safe_translation_getter("name", any_language=True)
+                regulator.name
                 for regulator in self.regulators.all()
             ]
         )
 
     @admin.display(
         description=_("Observer"),
-        ordering="observers__translations__name",
+        ordering="observers__name",
     )
     def get_observers(self):
         return ", ".join(
             [
-                observer.safe_translation_getter("name", any_language=True)
+                observer.name
                 for observer in self.observers.all()
             ]
         )
@@ -696,12 +679,10 @@ class ObserverUser(models.Model):
 
 
 # Different regulation like NIS etc.
-class Regulation(TranslatableModel):
-    translations = TranslatedFields(
-        label=models.CharField(
-            max_length=255,
-            verbose_name=_("Label"),
-        )
+class Regulation(models.Model):
+    label = models.CharField(
+        max_length=255,
+        verbose_name=_("Label"),
     )
     regulators = models.ManyToManyField(
         Regulator,
@@ -713,13 +694,12 @@ class Regulation(TranslatableModel):
     @admin.display(description=_("Regulators"))
     def get_regulators(self):
         return [
-            regulator.safe_translation_getter("name", any_language=True)
+            regulator.name
             for regulator in self.regulators.all()
         ]
 
     def __str__(self):
-        label_translation = self.safe_translation_getter("label", any_language=True)
-        return label_translation or ""
+        return self.label or ""
 
     class Meta:
         verbose_name_plural = _("Regulations")
@@ -727,12 +707,10 @@ class Regulation(TranslatableModel):
 
 
 # To categorize the operator, used for the observers to see or not the incident
-class EntityCategory(TranslatableModel):
-    translations = TranslatedFields(
-        label=models.CharField(
-            max_length=255,
-            verbose_name=_("Label"),
-        )
+class EntityCategory(models.Model):
+    label = models.CharField(
+        max_length=255,
+        verbose_name=_("Label"),
     )
     code = models.CharField(
         max_length=255,
@@ -740,8 +718,7 @@ class EntityCategory(TranslatableModel):
     )
 
     def __str__(self):
-        label_translation = self.safe_translation_getter("label", any_language=True)
-        return label_translation or ""
+        return self.label or ""
 
     def get_safe_translation(self):
         return str(self)

@@ -108,23 +108,8 @@ LANGUAGES = [
     ("de", "German"),
 ]
 
-PARLER_DEFAULT_LANGUAGE_CODE = "en"
-PARLER_LANGUAGES = {
-    1: (
-        {
-            "code": "en",
-        },  # English
-        {
-            "code": "fr",
-        },  # French
-        {
-            "code": "nl",
-        },  # Dutch
-        {
-            "code": "de",
-        },  # German
-    ),
-}
+MODELTRANSLATION_DEFAULT_LANGUAGE = "en"
+MODELTRANSLATION_LANGUAGES = ("en", "fr", "nl", "de")
 
 # COOKIEBANNER
 COOKIEBANNER = {

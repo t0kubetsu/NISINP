@@ -91,9 +91,8 @@ try:
     LANGUAGE_CODE = config.LANGUAGE_CODE
     TIME_ZONE = config.TIME_ZONE
     LANGUAGES = config.LANGUAGES
-    PARLER_DEFAULT_LANGUAGE_CODE = config.PARLER_DEFAULT_LANGUAGE_CODE
-    PARLER_LANGUAGES = config.PARLER_LANGUAGES
-    PARLER_ENABLE_CACHING = False
+    MODELTRANSLATION_DEFAULT_LANGUAGE = config.MODELTRANSLATION_DEFAULT_LANGUAGE
+    MODELTRANSLATION_LANGUAGES = config.MODELTRANSLATION_LANGUAGES
 
 except AttributeError as e:
     print("Please check you configuration file for the missing configuration variable:")
@@ -141,7 +140,7 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_static",
     "two_factor",
     "import_export",
-    "parler",
+    "modeltranslation",
     "phonenumber_field",
     "django_filters",
     "cookiebanner",
