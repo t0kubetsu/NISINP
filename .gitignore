@@ -25,3 +25,6 @@ theme/
 static/npm_components
 volumes/
 dump.rdb
+
+docker/docker-compose.yml
+.env
