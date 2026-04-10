@@ -608,10 +608,8 @@ class RegulatorForm(forms.Form):
                     "<strong>{}</strong>{}",
                     str(regulator),
                     (
-                        f" - {regulator.safe_translation_getter('full_name', any_language=True)}"
-                        if regulator.safe_translation_getter(
-                            "full_name", any_language=True
-                        )
+                        f" - {regulator.full_name}"
+                        if regulator.full_name
                         else ""
                     ),
                 ),

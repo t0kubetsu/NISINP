@@ -140,8 +140,9 @@ def get_recipient_list(incident):
 
 
 def send_email(email, incident, send_to_observers=False):
+    # With django-modeltranslation, subject field is directly accessible
     subject = replace_email_variables(
-        email.safe_translation_getter("subject", language_code=settings.LANGUAGE_CODE),
+        getattr(email, "subject", ""),
         incident,
     )
     html_content = render_to_string_multi_languages(

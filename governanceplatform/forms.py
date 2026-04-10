@@ -9,7 +9,6 @@ from django.contrib.auth.forms import PasswordResetForm, UserChangeForm
 from django.core.exceptions import ValidationError
 from django.utils.translation import get_language_info
 from django.utils.translation import gettext_lazy as _
-from parler.forms import TranslatableModelForm
 
 User = get_user_model()
 
@@ -234,15 +233,15 @@ class RegistrationForm(forms.ModelForm):
         )
 
 
-class CustomTranslatableAdminForm(TranslatableModelForm):
+class CustomTranslatableAdminForm(forms.ModelForm):
     FALLBACK_LANGUAGE = settings.PARLER_DEFAULT_LANGUAGE_CODE
 
     def clean(self):
         cleaned_data = super().clean()
-        if self.instance.pk and self.FALLBACK_LANGUAGE not in self.data:
-            if not self.instance.has_translation(self.FALLBACK_LANGUAGE):
-                self.add_default_translation_error()
-        elif self.FALLBACK_LANGUAGE not in self.data:
+        # With django-modeltranslation, all language fields are present as separate model fields
+        # Validate that the default language field is not empty
+        fallback_field = f"{list(cleaned_data.keys())[0]}_{self.FALLBACK_LANGUAGE}" if cleaned_data else None
+        if fallback_field and not cleaned_data.get(fallback_field):
             self.add_default_translation_error()
 
         self.check_translation_duplication_entry()
@@ -268,20 +267,23 @@ class CustomTranslatableAdminForm(TranslatableModelForm):
         if self.__class__.__name__ not in forms_to_check:
             return
 
-        model = self._meta.model._parler_meta.root_model
-        current_language = self.instance.get_current_language()
-        duplicate_translations = model.objects.filter(
-            **self.cleaned_data, language_code=current_language
-        )
+        # With django-modeltranslation, check for duplicates using the translated fields directly
+        model = self._meta.model
+        cleaned_data = {k: v for k, v in self.cleaned_data.items() if not k.endswith(('_en', '_fr', '_nl', '_de'))}
 
-        if duplicate_translations.exists():
-            error_message = _("This %(model)s already exists.") % {
-                "model": self.instance._meta.verbose_name.lower()
-            }
-            self.add_error(
-                None,
-                ValidationError(error_message),
-            )
+        if cleaned_data and self.instance.pk:
+            duplicate_translations = model.objects.filter(
+                **cleaned_data
+            ).exclude(pk=self.instance.pk)
+
+            if duplicate_translations.exists():
+                error_message = _("This %(model)s already exists.") % {
+                    "model": self.instance._meta.verbose_name.lower()
+                }
+                self.add_error(
+                    None,
+                    ValidationError(error_message),
+                )
 
 
 class TermsAcceptanceForm(forms.Form):

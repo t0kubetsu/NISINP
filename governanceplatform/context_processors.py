@@ -71,14 +71,8 @@ def user_modules(request):
         )
         for module in app_module_availables:
             if module.type in user_module_permissions:
-                module_name = None
-                if hasattr(module, "safe_translation_getter"):
-                    module_name = module.safe_translation_getter(
-                        "name", language_code=get_language()
-                    )
-                else:
-                    module_name = getattr(module, "name", None)
-
+                # With django-modeltranslation, translated fields are directly accessible
+                module_name = getattr(module, "name", None)
                 user_modules.append({"type": module.type, "name": module_name})
                 module_labels[f"/{module.type}"] = module_name
 

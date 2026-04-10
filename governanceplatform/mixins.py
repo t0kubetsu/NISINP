@@ -6,16 +6,10 @@ from .helpers import can_change_or_delete_obj, filter_languages_not_translated
 
 class TranslationUpdateMixin:
     def after_save_instance(self, instance, using_transactions, dry_run):
-        fields = instance._parler_meta.get_all_fields()
-        defaults = {}
-        for field in fields:
-            field_value = getattr(instance, field)
-            defaults[field] = field_value
-        instance.translations.update_or_create(
-            master_id=instance.id,
-            language_code=instance.language_code,
-            defaults=defaults,
-        )
+        # With django-modeltranslation, translation fields are directly on the model
+        # No separate translations relationship needed - fields are auto-suffixed per language
+        # This mixin is now a no-op but kept for backward compatibility
+        pass
 
 
 class PermissionMixin:

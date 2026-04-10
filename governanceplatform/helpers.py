@@ -452,15 +452,11 @@ def generate_display_methods(translated_fields, related_fields=None):
                     related_obj = getattr(obj, rel_attr, None)
                     if not related_obj:
                         return "-"
-                    # safe_translation_getter for Parler
-                    return getattr(
-                        related_obj,
-                        "safe_translation_getter",
-                        lambda f, any_language=True: "-",
-                    )(trans_field, any_language=True)
+                    # With django-modeltranslation, translated fields are directly accessible
+                    return getattr(related_obj, trans_field, "-")
 
                 _method.short_description = _(rel_attr.replace("_", " ").capitalize())
-                _method.admin_order_field = f"{rel_attr}__translations__{trans_field}"
+                _method.admin_order_field = f"{rel_attr}__{trans_field}"
                 return _method
 
             methods[f"{related_attr}_display"] = make_related_method(
@@ -488,10 +484,9 @@ def render_to_string_multi_languages(
 
     with translation.override(settings.LANGUAGE_CODE):
         if content and object and replace_email_variables:
+            # With django-modeltranslation, content field is directly accessible
             context["content"] = replace_email_variables(
-                content.safe_translation_getter(
-                    "content", language_code=settings.LANGUAGE_CODE
-                ),
+                getattr(content, "content", ""),
                 object,
             )
         baseline = render_to_string(template_name, context)
@@ -499,8 +494,9 @@ def render_to_string_multi_languages(
     for lang_code, lang_name in settings.LANGUAGES:
         with translation.override(lang_code):
             if content and object and replace_email_variables:
+                # With django-modeltranslation, content field is directly accessible
                 context["content"] = replace_email_variables(
-                    content.safe_translation_getter("content", language_code=lang_code),
+                    getattr(content, "content", ""),
                     object,
                 )
             context["content"] = markdown(text=context["content"], output_format="html")
