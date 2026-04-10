@@ -3,96 +3,108 @@
 from django.db import migrations
 
 
+PARLER_TABLES = [
+    "incidents_impact_translation",
+    "incidents_questioncategory_translation",
+    "incidents_question_translation",
+    "incidents_predefinedanswer_translation",
+    "incidents_email_translation",
+    "incidents_workflow_translation",
+    "incidents_sectorregulation_translation",
+    "incidents_sectorregulationworkflowemail_translation",
+]
+
+
+def table_exists(cursor, table_name):
+    cursor.execute(
+        "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)",
+        [table_name],
+    )
+    return cursor.fetchone()[0]
+
+
 def migrate_parler_to_modeltranslation(apps, schema_editor):
     """
-    Migrate translation data from django-parler translation tables to django-modeltranslation fields.
-
-    This migration handles moving data from parler's separate translation tables
-    to the new modeltranslation field-suffix pattern (label_en, label_fr, label_nl, label_de).
+    Copy translation data from django-parler tables into django-modeltranslation fields,
+    then drop the parler tables.
+    Safe to run even if some parler tables no longer exist.
     """
-    # List of incidents models and their translated fields to migrate
-    # Format: (model_name, translations_table, parent_field, [(translated_field, field_name)])
     migrations_config = [
-        ("Impact", "incidents_impacttranslation", "master", [("label", "label")]),
-        ("QuestionCategory", "incidents_questioncategorytranslation", "master", [("label", "label")]),
-        ("Question", "incidents_questiontranslation", "master", [
+        ("Impact", "incidents_impact_translation", "master", [
+            ("label", "label"),
+            ("headline", "headline"),
+        ]),
+        ("QuestionCategory", "incidents_questioncategory_translation", "master", [
+            ("label", "label"),
+        ]),
+        ("Question", "incidents_question_translation", "master", [
             ("label", "label"),
             ("tooltip", "tooltip"),
         ]),
-        ("PredefinedAnswer", "incidents_predefinedanswertranslation", "master", [
+        ("PredefinedAnswer", "incidents_predefinedanswer_translation", "master", [
             ("predefined_answer", "predefined_answer"),
         ]),
-        ("Email", "incidents_emailtranslation", "master", [
+        ("Email", "incidents_email_translation", "master", [
             ("subject", "subject"),
             ("content", "content"),
         ]),
-        ("Workflow", "incidents_workflowtranslation", "master", [
+        ("Workflow", "incidents_workflow_translation", "master", [
             ("label", "label"),
             ("description", "description"),
         ]),
-        ("SectorRegulation", "incidents_sectorregulationtranslation", "master", [("name", "name")]),
-        ("SectorRegulationWorkflowEmail", "incidents_sectorregulationworkfloweemailtranslation", "master", [
+        ("SectorRegulation", "incidents_sectorregulation_translation", "master", [
+            ("name", "name"),
+        ]),
+        ("SectorRegulationWorkflowEmail", "incidents_sectorregulationworkflowemail_translation", "master", [
             ("headline", "headline"),
         ]),
     ]
 
-    # Language codes to migrate
     language_codes = ["en", "fr", "nl", "de"]
 
-    # Iterate through each model's translations
-    for model_name, translation_table, parent_fk, field_mappings in migrations_config:
-        try:
+    with schema_editor.connection.cursor() as cursor:
+        for model_name, translation_table, parent_fk, field_mappings in migrations_config:
+            if not table_exists(cursor, translation_table):
+                print(f"Skipping {model_name}: table {translation_table} does not exist")
+                continue
+
             model = apps.get_model("incidents", model_name)
+            cols = ", ".join([f'"{m[0]}"' for m in field_mappings])
 
-            # Get the translation table via raw SQL (parler tables may not be in the ORM)
-            with schema_editor.connection.cursor() as cursor:
-                for lang_code in language_codes:
+            for lang_code in language_codes:
+                cursor.execute(
+                    f"SELECT {parent_fk}_id, {cols} FROM {translation_table} WHERE language_code = %s",
+                    [lang_code],
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    instance_id = row[0]
                     try:
-                        # Query the parler translation table for this language
-                        query = f"""
-                            SELECT {parent_fk}_id, {', '.join([f'"{mapping[0]}"' for mapping in field_mappings])}
-                            FROM {translation_table}
-                            WHERE language_code = %s
-                        """
-                        cursor.execute(query, [lang_code])
-                        rows = cursor.fetchall()
+                        instance = model.objects.get(pk=instance_id)
+                        for idx, (_, model_field) in enumerate(field_mappings):
+                            setattr(instance, f"{model_field}_{lang_code}", row[idx + 1])
+                        instance.save(
+                            update_fields=[f"{m[1]}_{lang_code}" for m in field_mappings]
+                        )
+                    except model.DoesNotExist:
+                        pass
 
-                        # Update model instances with translated data
-                        for row in rows:
-                            instance_id = row[0]
-                            try:
-                                instance = model.objects.get(pk=instance_id)
-                                # Set the translated fields (modeltranslation will create _en, _fr, _nl, _de suffixed fields)
-                                for idx, (parler_field, model_field) in enumerate(field_mappings):
-                                    field_value = row[idx + 1]
-                                    # Set field with language suffix
-                                    setattr(instance, f"{model_field}_{lang_code}", field_value)
-                                instance.save(update_fields=[f"{mapping[1]}_{lang_code}" for mapping in field_mappings])
-                            except model.DoesNotExist:
-                                # Instance was deleted, skip
-                                pass
-                    except Exception as e:
-                        # Parler table may not exist for this model, continue
-                        print(f"Could not migrate {model_name} for language {lang_code}: {str(e)}")
-                        continue
-        except Exception as e:
-            # Model not found or other error, continue
-            print(f"Error migrating {model_name}: {str(e)}")
-            continue
+        # Drop parler tables now that data has been copied (or if they were already gone)
+        for table in PARLER_TABLES:
+            cursor.execute(f"DROP TABLE IF EXISTS {table}")
 
 
 def reverse_migrate_parler_to_modeltranslation(apps, schema_editor):
-    """
-    Reverse migration: Clear modeltranslation fields (data stays in parler tables if they still exist).
-    """
-    # This is a data migration, reverse is a no-op since we're migrating forward only
     pass
 
 
 class Migration(migrations.Migration):
+    # Run outside a transaction so a missing-table error on one model
+    # does not abort the entire connection.
+    atomic = False
 
     dependencies = [
-        ("incidents", "0026_alter_sectorregulationworkfloweemail_headline"),
+        ("incidents", "0028_alter_impacttranslation_unique_together_and_more"),
     ]
 
     operations = [
