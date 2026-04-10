@@ -1,0 +1,57 @@
+services:
+  postgres:
+    container_name: governanceplatform-postgres-dev
+    image: postgres:15
+    env_file: .env
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - ./volumes/postgres/data:/var/lib/postgresql/data
+      # enable the below volume if you want to load a pg_dump at init
+      - ./volumes/postgres/initdb.d:/docker-entrypoint-initdb.d
+
+  theme:
+    container_name: governanceplatform-theme-dev
+    image: ${THEME_IMAGE:-ghcr.io/informed-governance-project/default-theme}:${THEME_VERSION:?THEME_VERSION is required}
+    volumes:
+      - theme:/app/theme
+    restart: unless-stopped
+
+  celery-worker:
+    container_name: governanceplatform-celery-worker-dev
+    image: ${NISINP_IMAGE:-ghcr.io/informed-governance-project/nisinp}:${NISINP_VERSION:?NISINP_VERSION is required}
+    pull_policy: always
+    env_file: .env
+    command: worker
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../governanceplatform/config.py:/app/governanceplatform/config.py:ro
+      - theme:/app/theme
+      - shared_dir:/app/tmp
+
+  celery-beat:
+    container_name: governanceplatform-celery-beat-dev
+    image: ${NISINP_IMAGE:-ghcr.io/informed-governance-project/nisinp}:${NISINP_VERSION:?NISINP_VERSION is required}
+    pull_policy: always
+    env_file: .env
+    command: beat
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../governanceplatform/config.py:/app/governanceplatform/config.py:ro
+
+  redis:
+    container_name: governanceplatform-redis-dev
+    image: docker.io/redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/redis/data:/data
+
+volumes:
+  theme:
+  shared_dir:
