@@ -222,7 +222,7 @@ class PredefinedAnswerAdmin(
     PermissionMixin, ExportActionModelAdmin, CustomTranslatableAdmin
 ):
     list_display = ["predefined_answer", "creator"]
-    search_fields = ["translations__predefined_answer"]
+    search_fields = ["predefined_answer"]
     resource_class = PredefinedAnswerResource
     exclude = ["creator_name", "creator"]
 
@@ -257,7 +257,7 @@ class QuestionCategoryAdmin(
     PermissionMixin, ExportActionModelAdmin, CustomTranslatableAdmin
 ):
     list_display = ["label", "creator"]
-    search_fields = ["translations__label"]
+    search_fields = ["label"]
     resource_class = QuestionCategoryResource
     exclude = ["creator_name", "creator"]
 
@@ -476,11 +476,11 @@ class QuestionAdmin(
     translated_fields = ["label"]
     list_display_links = ["reference", "label_display"]
     search_fields = [
-        "translations__label",
-        "translations__tooltip",
+        "label",
+        "tooltip",
         "reference",
-        "creator__translations__name",
-        "predefinedanswer__translations__predefined_answer",
+        "creator__name",
+        "predefinedanswer__predefined_answer",
     ]
     fields = [
         "question_type",
@@ -599,7 +599,7 @@ class ImpactRegulationListFilter(SimpleListFilter):
         return [
             (regulation.id, regulation.label)
             for regulation in Regulation.objects.translated(get_language()).order_by(
-                "translations__label"
+                "label"
             )
         ]
 
@@ -618,9 +618,9 @@ class ImpactAdmin(ExportActionModelAdmin, CustomTranslatableAdmin):
     ]
     translated_fields = ["headline"]
     search_fields = [
-        "translations__label",
-        "regulations__translations__label",
-        "sectors__translations__name",
+        "label",
+        "regulations__label",
+        "sectors__name",
     ]
     resource_class = ImpactResource
     list_filter = [ImpactSectorListFilter, ImpactRegulationListFilter]
@@ -657,16 +657,14 @@ class ImpactAdmin(ExportActionModelAdmin, CustomTranslatableAdmin):
             Sector.objects.filter(
                 impact=OuterRef("pk"),
             )
-            .values("parent__translations__name")
-            .filter(parent__translations__language_code=lang)
+            .values("parent__name")
             .distinct()[:1]
         )
         subsector_subquery = (
             Sector.objects.filter(
                 impact=OuterRef("pk"),
             )
-            .values("translations__name")
-            .filter(translations__language_code=lang)
+            .values("name")
             .distinct()[:1]
         )
         return (
@@ -681,7 +679,7 @@ class ImpactAdmin(ExportActionModelAdmin, CustomTranslatableAdmin):
         )
 
     @admin.display(
-        description=_("Regulations"), ordering="regulations__translations__label"
+        description=_("Regulations"), ordering="regulations__label"
     )
     def get_regulations(self, obj):
         return ", ".join([c.label for c in obj.regulations.all()])
@@ -762,7 +760,7 @@ class EmailRegulatorListFilter(SimpleListFilter):
         return [
             (regulator.id, regulator.name)
             for regulator in Regulator.objects.translated(get_language()).order_by(
-                "translations__name"
+                "name"
             )
         ]
 
@@ -816,7 +814,7 @@ class EmailAdmin(ExportActionModelAdmin, CustomTranslatableAdmin):
     ]
     translated_fields = ["subject", "content"]
 
-    search_fields = ["translations__subject", "translations__content", "name"]
+    search_fields = ["subject", "content", "name"]
     list_filter = [EmailRegulatorListFilter, EmailTypeListFilter]
     resource_class = EmailResource
 
@@ -879,10 +877,10 @@ class WorkflowAdmin(PermissionMixin, CustomTranslatableAdmin):
     ]
     translated_fields = ["label", "description"]
     search_fields = [
-        "translations__label",
+        "label",
         "name",
-        "translations__description",
-        "creator__translations__name",
+        "description",
+        "creator__name",
     ]
     inlines = (QuestionOptionsInline,)
     save_as = True
@@ -985,9 +983,9 @@ class SectorRegulationInline(admin.TabularInline):
 class SectorRegulationAdmin(CustomTranslatableAdmin, PermissionMixin):
     list_display = ["name", "regulation", "regulator", "is_detection_date_needed"]
     search_fields = [
-        "translations__name",
-        "regulator__translations__name",
-        "regulation__translations__label",
+        "name",
+        "regulator__name",
+        "regulation__label",
     ]
     resource_class = SectorRegulationResource
     inlines = (SectorRegulationInline,)
@@ -1114,8 +1112,8 @@ class SectorRegulationWorkflowEmailAdmin(CustomTranslatableAdmin):
     ]
     translated_fields = ["headline"]
     search_fields = [
-        "sector_regulation_workflow__sector_regulation__regulation__translations__label",
-        "translations__headline",
+        "sector_regulation_workflow__sector_regulation__regulation__label",
+        "headline",
         "sector_regulation_workflow__workflow__name",
     ]
     resource_class = SectorRegulationWorkflowEmailResource
@@ -1132,7 +1130,7 @@ class SectorRegulationWorkflowEmailAdmin(CustomTranslatableAdmin):
             # Regulator Admin
             kwargs["queryset"] = (
                 SectorRegulationWorkflow.objects.all()
-                .order_by("sector_regulation__translations__name", "workflow__name")
+                .order_by("sector_regulation__name", "workflow__name")
                 .distinct()
             )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

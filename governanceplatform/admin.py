@@ -19,9 +19,7 @@ from django_otp.decorators import otp_required
 from import_export import fields, resources
 from import_export.admin import ExportActionModelAdmin
 from import_export.widgets import ManyToManyWidget
-from parler.admin import TranslatableAdmin, TranslatableTabularInline
-
-from governanceplatform.settings import PARLER_DEFAULT_LANGUAGE_CODE
+from governanceplatform.settings import MODELTRANSLATION_DEFAULT_LANGUAGE
 from incidents.email import send_html_email
 
 from .forms import CustomObserverAdminForm, CustomTranslatableAdminForm
@@ -115,57 +113,13 @@ class CustomAdminSite(admin.AdminSite):
 admin_site = CustomAdminSite()
 
 
-class CustomTranslatableAdmin(ShowReminderForTranslationsMixin, TranslatableAdmin):
+class CustomTranslatableAdmin(ShowReminderForTranslationsMixin, admin.ModelAdmin):
     form = CustomTranslatableAdminForm
 
     translated_fields = []
 
-    def get_search_results(self, request, queryset, search_term):
-        queryset, use_distinct = super().get_search_results(
-            request, queryset, search_term
-        )
-        lang = request.LANGUAGE_CODE
-        queryset = queryset.active_translations(lang).distinct()
-        return queryset.distinct(), use_distinct
 
-    """
-    Automaticaly annotate field in translated_fields
-    Give sortable column via `_field`
-    Manage fallback if translation is not here
-    """
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        lang = getattr(request, "LANGUAGE_CODE", "en")
-        default_lang = PARLER_DEFAULT_LANGUAGE_CODE
-
-        annotations = {}
-
-        for f in self.translated_fields:
-            # Annotate value with the request lang and default one
-            annotations[f"_{f}_lang"] = Max(
-                f"translations__{f}", filter=Q(translations__language_code=lang)
-            )
-            annotations[f"_{f}_default"] = Max(
-                f"translations__{f}", filter=Q(translations__language_code=default_lang)
-            )
-
-        qs = qs.annotate(**annotations)
-
-        # Apply Coalesce for fallback (_field = _field_lang or _field_default or "")
-        final_annotations = {}
-        for f in self.translated_fields:
-            final_annotations[f"_{f}"] = Coalesce(
-                f"_{f}_lang",
-                f"_{f}_default",
-                Value(""),
-                output_field=TextField(),
-            )
-
-        return qs.annotate(**final_annotations)
-
-
-class CustomTranslatableTabularInline(TranslatableTabularInline):
+class CustomTranslatableTabularInline(admin.TabularInline):
     form = CustomTranslatableAdminForm
 
 
@@ -250,7 +204,7 @@ class SectorResource(TranslationUpdateMixin, resources.ModelResource):
 class SectorAdmin(ExportActionModelAdmin, CustomTranslatableAdmin):
     list_display = ["acronym", "name_display", "parent"]
     list_display_links = ["acronym", "name_display"]
-    search_fields = ["translations__name", "acronym", "parent__translations__name"]
+    search_fields = ["name", "acronym", "parent__name"]
     resource_class = SectorResource
     fields = ("name", "parent", "acronym")
     ordering = ["id", "parent"]
@@ -359,7 +313,7 @@ class EntityCategoryAdmin(CustomTranslatableAdmin):
     resource_class = EntityCategoryResource
 
     list_display = ["code", "label_display"]
-    search_fields = ["translations__label", "code"]
+    search_fields = ["label", "code"]
     order_list = ["code"]
     fields = (
         "label",
@@ -792,7 +746,7 @@ class UserResource(resources.ModelResource):
                     data_companies = data["companies"].split("|")
                     companies = Company.objects.filter(name__in=data_companies)
                     data_sectors = data["sectors"].split("|")
-                    sectors = Sector.objects.filter(translations__name__in=data_sectors)
+                    sectors = Sector.objects.filter(name__in=data_sectors)
                     if sectors is not None and companies is not None:
                         for company in companies:
                             for sector in sectors:
@@ -1149,8 +1103,8 @@ class UserAdmin(ExportActionModelAdmin, admin.ModelAdmin):
         "email",
         "phone_number",
         "companies__name",
-        "regulators__translations__name",
-        "observers__translations__name",
+        "regulators__name",
+        "observers__name",
         "groups__name",
     ]
     list_filter = [
@@ -1557,7 +1511,7 @@ class FunctionalityResource(TranslationUpdateMixin, resources.ModelResource):
 @admin.register(Functionality, site=admin_site)
 class FunctionalityAdmin(CustomTranslatableAdmin):
     list_display = ["type", "name_display"]
-    search_fields = ["translations__name"]
+    search_fields = ["name"]
     order_list = ["type"]
     translated_fields = ["name"]
     resource_class = FunctionalityResource
@@ -1628,9 +1582,9 @@ class RegulatorResource(TranslationUpdateMixin, resources.ModelResource):
 class RegulatorAdmin(CustomTranslatableAdmin):
     list_display = ["name_display", "full_name_display", "description_display"]
     search_fields = [
-        "translations__name",
-        "translations__full_name",
-        "translations__description",
+        "name",
+        "full_name",
+        "description",
     ]
     resource_class = RegulatorResource
     fields = (
@@ -1793,9 +1747,9 @@ class ObserverAdmin(CustomTranslatableAdmin):
         "description_display",
     ]
     search_fields = [
-        "translations__name",
-        "translations__full_name",
-        "translations__description",
+        "name",
+        "full_name",
+        "description",
     ]
     resource_class = ObserverResource
     filter_horizontal = [
@@ -1901,7 +1855,7 @@ class RegulationResource(TranslationUpdateMixin, resources.ModelResource):
 @admin.register(Regulation, site=admin_site)
 class RegulationAdmin(CustomTranslatableAdmin):
     list_display = ["label_display", "get_regulators"]
-    search_fields = ["translations__label", "regulators__translations__name"]
+    search_fields = ["label", "regulators__name"]
     resource_class = RegulationResource
     fields = (
         "label",
