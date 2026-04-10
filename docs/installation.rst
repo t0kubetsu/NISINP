@@ -72,7 +72,9 @@ NISINP
 
     git clone https://github.com/informed-governance-project/NISINP.git
     cd NISINP
-    git submodule update --init --recursive
+    # clone a theme, for example the default-theme
+    git clone https://github.com/informed-governance-project/default-theme theme
+    git -C theme checkout dev
     npm install
     # Copy the config and adjust the DB connection and the other settings:
     cp governanceplatform/config_dev.py governanceplatform/config.py
