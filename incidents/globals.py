@@ -123,19 +123,22 @@ ALLOWED_SORT_FIELDS = {
         "type": "string",
     },
     "regulator": {
-        "field": "sector_regulation__regulator__translations__name",
+        "field": "sector_regulation__regulator__name",
         "type": "string",
+        "translated": True,
     },
     "regulation": {
-        "field": "sector_regulation__regulation__translations__label",
+        "field": "sector_regulation__regulation__label",
         "type": "string",
+        "translated": True,
     },
     "reference": {
         "field": "incident_id",
         "type": "string",
     },
     "sectors": {
-        "field": "affected_sectors__translations__name",
+        "field": "affected_sectors__name",
         "type": "string",
+        "translated": True,
     },
 }

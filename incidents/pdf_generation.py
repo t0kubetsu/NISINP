@@ -93,7 +93,7 @@ def get_pdf_report(
 
         # impacts
         incident_workflows_impact[workflow_name].extend(
-            incident_workflow.impacts.all().order_by("translations__label").distinct()
+            incident_workflow.impacts.all().order_by("label").distinct()
         )
         incident_workflows_impact[workflow_name] = list(
             {

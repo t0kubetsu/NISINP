@@ -33,9 +33,10 @@ from governanceplatform.helpers import (
 )
 from governanceplatform.mixins import PermissionMixin, TranslationUpdateMixin
 from governanceplatform.models import Regulation, Regulator, Sector, User
+from django.conf import settings as django_settings
+
 from governanceplatform.settings import (
     LOG_RETENTION_TIME_IN_DAY,
-    PARLER_DEFAULT_LANGUAGE_CODE,
 )
 from governanceplatform.widgets import TranslatedNameM2MWidget, TranslatedNameWidget
 from incidents.forms import QuestionOptionsInlineForm
@@ -330,7 +331,7 @@ class QuestionOptionsInline(PermissionMixin, admin.TabularInline):
             lang = getattr(request, "LANGUAGE_CODE", "en")
             queryset = Question.objects.all()
             qs = translated_queryset(
-                queryset, lang, PARLER_DEFAULT_LANGUAGE_CODE, ["label", "tooltip"], True
+                queryset, lang, django_settings.MODELTRANSLATION_DEFAULT_LANGUAGE, ["label", "tooltip"], True
             )
             kwargs["queryset"] = qs.order_by("_label_sort")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

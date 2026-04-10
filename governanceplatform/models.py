@@ -31,7 +31,7 @@ class ApplicationConfig(models.Model):
 
 # sector
 class Sector(models.Model):
-    name = models.CharField(_("Name"), max_length=100)
+    name = models.CharField(_("Name"), max_length=100, blank=True, default="")
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -78,7 +78,7 @@ class Sector(models.Model):
 
 # esssential services
 class Service(models.Model):
-    name = models.CharField(_("Name"), max_length=100)
+    name = models.CharField(_("Name"), max_length=100, blank=True, default="")
     sector = models.ForeignKey(
         Sector, verbose_name=_("Sector"), on_delete=models.CASCADE
     )
@@ -93,7 +93,7 @@ class Service(models.Model):
 
 
 class Functionality(models.Model):
-    name = models.CharField(verbose_name=_("Name"), max_length=100)
+    name = models.CharField(verbose_name=_("Name"), max_length=100, blank=True, default="")
 
     type = models.CharField(
         verbose_name=_("Type"),
@@ -120,7 +120,7 @@ class Functionality(models.Model):
 
 # operator has type (critical, essential, etc.) who give access to functionalities
 class OperatorType(models.Model):
-    type = models.CharField(verbose_name=_("Type"), max_length=100)
+    type = models.CharField(verbose_name=_("Type"), max_length=100, blank=True, default="")
     functionalities = models.ManyToManyField(
         Functionality,
         verbose_name=_("Functionalities"),
@@ -206,7 +206,7 @@ class Company(models.Model):
 
 # Regulator
 class Regulator(models.Model):
-    name = models.CharField(max_length=64, verbose_name=_("Name"))
+    name = models.CharField(max_length=64, verbose_name=_("Name"), blank=True, default="")
     full_name = models.TextField(
         blank=True, default="", null=True, verbose_name=_("Full name")
     )
@@ -242,7 +242,7 @@ class Regulator(models.Model):
 
 # Observer
 class Observer(models.Model):
-    name = models.CharField(default="", max_length=64, verbose_name=_("Name"))
+    name = models.CharField(default="", max_length=64, verbose_name=_("Name"), blank=True)
     full_name = models.TextField(
         blank=True, default="", null=True, verbose_name=_("Full name")
     )
@@ -683,6 +683,8 @@ class Regulation(models.Model):
     label = models.CharField(
         max_length=255,
         verbose_name=_("Label"),
+        blank=True,
+        default="",
     )
     regulators = models.ManyToManyField(
         Regulator,
@@ -711,6 +713,8 @@ class EntityCategory(models.Model):
     label = models.CharField(
         max_length=255,
         verbose_name=_("Label"),
+        blank=True,
+        default="",
     )
     code = models.CharField(
         max_length=255,

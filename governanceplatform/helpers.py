@@ -335,6 +335,10 @@ def filter_languages_not_translated(form):
 #  1. the value in the requested language,
 #  2. falling back to the default language if the translation is missing.
 #
+# With django-modeltranslation, translated fields are stored directly on the
+# model table as field_<lang> (e.g. name_en, name_fr). This function annotates
+# the queryset with _<field> for each field, using Coalesce for fallback.
+#
 # If orderable = True, the function also creates normalized sort fields for
 # each entry in translated_fields. For example, with translated_fields = ["label", "tooltip"],
 # it will generate _label_sort and _tooltip_sort.
@@ -347,27 +351,15 @@ def translated_queryset(
 ):
     default_lang = default_language
     lang = language
-    annotations = {}
     if translated_fields is None:
         translated_fields = []
 
-    for f in translated_fields:
-        # Annotate value with the requested lang and default one
-        annotations[f"_{f}_lang"] = Max(
-            f"translations__{f}", filter=Q(translations__language_code=lang)
-        )
-        annotations[f"_{f}_default"] = Max(
-            f"translations__{f}", filter=Q(translations__language_code=default_lang)
-        )
-
-    qs = qs.annotate(**annotations)
-
-    # Apply Coalesce for fallback (_field = _field_lang or _field_default or "")
     final_annotations = {}
     for f in translated_fields:
+        # With modeltranslation, fields are name_en, name_fr, etc.
         final_annotations[f"_{f}"] = Coalesce(
-            f"_{f}_lang",
-            f"_{f}_default",
+            NullIf(F(f"{f}_{lang}"), Value("")),
+            NullIf(F(f"{f}_{default_lang}"), Value("")),
             Value(""),
             output_field=TextField(),
         )
@@ -375,7 +367,6 @@ def translated_queryset(
 
     if orderable:
         sort_annotations = {}
-
         for f in translated_fields:
             sort_annotations[f"_{f}_sort"] = Lower(F(f"_{f}"))
         qs = qs.annotate(**sort_annotations)
@@ -389,31 +380,21 @@ def annotate_translated_field_from_related_models(
     full_path,
     annotated_name,
 ):
-    default_lang = settings.PARLER_DEFAULT_LANGUAGE_CODE
-    lang = translation.get_language()
-    relation_path, translated_field = full_path.rsplit("__translations__", 1)
+    """Annotate a queryset with a translated field from a related model.
 
-    lang_key = f"_{translated_field}_lang"
-    default_key = f"_{translated_field}_default"
+    With django-modeltranslation, translated fields are stored as field_<lang>
+    directly on the model table. The full_path should use the pattern
+    relation__field (e.g. "regulator__full_name"), without the __translations__
+    segment used by django-parler.
+    """
+    default_lang = settings.MODELTRANSLATION_DEFAULT_LANGUAGE
+    lang = translation.get_language()
 
     qs = qs.annotate(
         **{
-            lang_key: Max(
-                f"{relation_path}__translations__{translated_field}",
-                filter=Q(**{f"{relation_path}__translations__language_code": lang}),
-            ),
-            default_key: Max(
-                f"{relation_path}__translations__{translated_field}",
-                filter=Q(
-                    **{f"{relation_path}__translations__language_code": default_lang}
-                ),
-            ),
-        }
-    ).annotate(
-        **{
             annotated_name: Coalesce(
-                NullIf(lang_key, Value("")),
-                NullIf(default_key, Value("")),
+                NullIf(F(f"{full_path}_{lang}"), Value("")),
+                NullIf(F(f"{full_path}_{default_lang}"), Value("")),
                 output_field=TextField(),
             )
         }
@@ -588,7 +569,7 @@ def sort_queryset_by_field(
     field = config_field["field"]
     is_string = config_field["type"] == "string"
 
-    if "__translations__" in field:
+    if config_field.get("translated"):
         annotated_name = f"sort_{field.replace('__', '_')}"
         qs = annotate_translated_field_from_related_models(
             qs,

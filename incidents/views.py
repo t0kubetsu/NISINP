@@ -153,7 +153,7 @@ def get_incidents(request):
         annotated_name = ALLOWED_SORT_FIELDS.get(sort_field)["field"]
         incidents = annotate_translated_field_from_related_models(
             incidents,
-            full_path="regulator__translations__full_name",
+            full_path="regulator__full_name",
             annotated_name="__regulator_name",
         )
         incidents = incidents.annotate(
@@ -171,7 +171,7 @@ def get_incidents(request):
         annotated_name = ALLOWED_SORT_FIELDS.get(sort_field)["field"]
         incidents = annotate_translated_field_from_related_models(
             incidents,
-            full_path="regulator__translations__name",
+            full_path="regulator__name",
             annotated_name="__regulator_identifier",
         )
         incidents = incidents.annotate(

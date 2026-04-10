@@ -95,28 +95,28 @@ sectors = [
     {
         "acronym": "GAS",
         "name": "Gas",
-        "parent": {"acronym": "ENE", "translations__name": "Energy"},
+        "parent": {"acronym": "ENE", "name": "Energy"},
     },
     {
         "acronym": "ELEC",
         "name": "Electricity",
-        "parent": {"acronym": "ENE", "translations__name": "Energy"},
+        "parent": {"acronym": "ENE", "name": "Energy"},
     },
     {
         "acronym": "ROAD",
         "name": "Road transport",
-        "parent": {"acronym": "TRA", "translations__name": "Transport"},
+        "parent": {"acronym": "TRA", "name": "Transport"},
     },
     {
         "acronym": "BOAT",
         "name": "Boat transport",
-        "parent": {"acronym": "TRA", "translations__name": "Transport"},
+        "parent": {"acronym": "TRA", "name": "Transport"},
     },
 ]
 
 regulations = [
-    {"id": 1, "label": "NIS", "regulators": [{"translations__name": "REG1"}]},
-    {"id": 2, "label": "GDPR", "regulators": [{"translations__name": "REG2"}]},
+    {"id": 1, "label": "NIS", "regulators": [{"name": "REG1"}]},
+    {"id": 2, "label": "GDPR", "regulators": [{"name": "REG2"}]},
 ]
 
 users = [

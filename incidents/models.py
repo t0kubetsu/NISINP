@@ -23,7 +23,7 @@ from .globals import (
 class Impact(models.Model):
     """Defines an impact."""
 
-    label = models.TextField(verbose_name=_("Label"))
+    label = models.TextField(verbose_name=_("Label"), blank=True, default="")
     headline = models.CharField(
         verbose_name=_("Title"),
         max_length=255,
@@ -71,7 +71,7 @@ class Impact(models.Model):
 
 # category for the question (to order)
 class QuestionCategory(models.Model):
-    label = models.CharField(verbose_name=_("Label"), max_length=255)
+    label = models.CharField(verbose_name=_("Label"), max_length=255, blank=True, default="")
     # name of the regulator who create the object
     creator_name = models.CharField(
         verbose_name=_("Creator name"),
@@ -111,7 +111,7 @@ class Question(models.Model):
         max_length=255,
         unique=True,
     )  # reference to add context information on question
-    label = models.TextField(verbose_name=_("Label"))
+    label = models.TextField(verbose_name=_("Label"), blank=True, default="")
     tooltip = models.TextField(verbose_name=_("Tooltip"), blank=True, null=True)
     # name of the regulator who create the object
     creator_name = models.CharField(
@@ -152,7 +152,7 @@ class Question(models.Model):
 
 # answers for the question
 class PredefinedAnswer(models.Model):
-    predefined_answer = models.TextField(verbose_name=_("Answer"))
+    predefined_answer = models.TextField(verbose_name=_("Answer"), blank=True, default="")
     question = models.ForeignKey(
         Question,
         verbose_name=_("Question"),
@@ -191,9 +191,13 @@ class Email(models.Model):
     subject = models.CharField(
         verbose_name=_("Subject"),
         max_length=255,
+        blank=True,
+        default="",
     )
     content = models.TextField(
         verbose_name=_("Content"),
+        blank=True,
+        default="",
         help_text=_(
             """Available placeholders: #INCIDENT_NOTIFICATION_DATE#,
             #INCIDENT_DETECTION_DATE#,
@@ -233,7 +237,7 @@ class Email(models.Model):
 class Workflow(models.Model):
     name = models.CharField(verbose_name=_("Name"), max_length=255, unique=True)
 
-    label = models.CharField(verbose_name=_("Label"), max_length=255)
+    label = models.CharField(verbose_name=_("Label"), max_length=255, blank=True, default="")
     description = models.TextField(
         blank=True, default="", null=True, verbose_name=_("Description")
     )
@@ -281,7 +285,7 @@ class Workflow(models.Model):
 # admin platform has designated him
 class SectorRegulation(models.Model):
     # for exemple NIS for energy sector
-    name = models.CharField(verbose_name=_("Name"), max_length=255)
+    name = models.CharField(verbose_name=_("Name"), max_length=255, blank=True, default="")
     regulation = models.ForeignKey(
         "governanceplatform.Regulation",
         on_delete=models.CASCADE,
@@ -439,7 +443,7 @@ class SectorRegulationWorkflow(models.Model):
 
 # for emailing during each workflow
 class SectorRegulationWorkflowEmail(models.Model):
-    headline = models.CharField(verbose_name=_("Email subject"), max_length=255)
+    headline = models.CharField(verbose_name=_("Email subject"), max_length=255, blank=True, default="")
 
     sector_regulation_workflow = models.ForeignKey(
         SectorRegulationWorkflow,

@@ -234,7 +234,7 @@ class RegistrationForm(forms.ModelForm):
 
 
 class CustomTranslatableAdminForm(forms.ModelForm):
-    FALLBACK_LANGUAGE = settings.PARLER_DEFAULT_LANGUAGE_CODE
+    FALLBACK_LANGUAGE = settings.MODELTRANSLATION_DEFAULT_LANGUAGE
 
     def clean(self):
         cleaned_data = super().clean()
