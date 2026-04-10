@@ -9,7 +9,6 @@ from django.forms.widgets import ChoiceWidget
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django_countries import countries
-from parler.widgets import SortedCheckboxSelectMultiple
 
 from governanceplatform.helpers import (
     get_active_company_from_session,
@@ -570,7 +569,7 @@ def construct_services_array(root_sectors):
 class RegulationForm(forms.Form):
     regulations = forms.MultipleChoiceField(
         required=True,
-        widget=SortedCheckboxSelectMultiple(),
+        widget=forms.CheckboxSelectMultiple(),
     )
 
     def __init__(self, *args, **kwargs):
@@ -593,7 +592,7 @@ class RegulatorForm(forms.Form):
     regulators = forms.MultipleChoiceField(
         required=True,
         choices=[],
-        widget=SortedCheckboxSelectMultiple(),
+        widget=forms.CheckboxSelectMultiple(),
         label=_("Send notification to"),
     )
 

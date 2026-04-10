@@ -10,19 +10,16 @@ class TranslatedNameM2MWidget(widgets.ManyToManyWidget):
             return self.model.objects.none()
 
         names = value.split(self.separator)
-        languages = [lang[0] for lang in LANGUAGES]
 
         instances = []
         for name in names:
-            for lang_code in languages:
-                instance = self.model._parler_meta.root_model.objects.filter(
-                    **{self.field: name.strip()},
-                    language_code=lang_code,
-                ).first()
+            # With django-modeltranslation, search directly using the field name
+            instance = self.model.objects.filter(
+                **{self.field: name.strip()},
+            ).first()
 
-                if instance is not None:
-                    instances.append(instance.master_id)
-                    break
+            if instance is not None:
+                instances.append(instance.id)
 
         return instances
 
@@ -33,14 +30,11 @@ class TranslatedNameWidget(widgets.ForeignKeyWidget):
         if not value:
             return self.model.objects.none()
 
-        languages = [lang[0] for lang in LANGUAGES]
+        # With django-modeltranslation, search directly using the field name
+        instance = self.model.objects.filter(
+            **{self.field: value.strip()},
+        ).first()
 
-        for lang_code in languages:
-            instance = self.model._parler_meta.root_model.objects.filter(
-                **{self.field: value.strip()},
-                language_code=lang_code,
-            ).first()
-
-            if instance is not None:
-                return instance.master
+        if instance is not None:
+            return instance
         return

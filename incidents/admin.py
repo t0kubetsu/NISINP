@@ -16,7 +16,6 @@ from django.utils.translation import gettext_lazy as _
 from import_export import fields, resources
 from import_export.admin import ExportActionModelAdmin
 from markdown import markdown
-from parler.models import TranslatableModel
 
 from governanceplatform.admin import (
     CustomTranslatableAdmin,
@@ -382,8 +381,8 @@ def duplicate_objects(modeladmin, request, queryset):
                     except FieldDoesNotExist:
                         continue
 
-                if isinstance(obj, TranslatableModel):
-                    obj_translations = list(obj.translations.all())
+                # With django-modeltranslation, translations are stored as field suffixes, not separate objects
+                obj_translations = []
 
                 for field in obj._meta.many_to_many:
                     many_to_many_data[field.name] = list(getattr(obj, field.name).all())
@@ -407,22 +406,17 @@ def duplicate_objects(modeladmin, request, queryset):
 
                 obj.save()
 
-                if obj_translations:
-                    for t in obj_translations:
-                        t.pk = None
-                        if hasattr(t, label_field):
-                            original_label = getattr(t, label_field)
-                            setattr(t, label_field, f"{original_label} (copy)")
-                        t.master = obj
-                        t.save()
+                # With django-modeltranslation, translation fields are already copied during save()
+                # No separate translation objects to handle
 
                 for field_name, items in many_to_many_data.items():
                     getattr(obj, field_name).set(items)
 
                 for related_objs in reverse_fk_data.values():
                     for related_obj in related_objs:
-                        if isinstance(related_obj, TranslatableModel):
-                            related_translations = list(related_obj.translations.all())
+                        # With django-modeltranslation, translation fields are stored as field suffixes
+                        # and are automatically handled during the main object save()
+                        # No separate translation objects to copy
 
                         related_obj.pk = None
                         field_name = related_obj._meta.get_field(
@@ -430,12 +424,6 @@ def duplicate_objects(modeladmin, request, queryset):
                         ).name
                         setattr(related_obj, field_name, obj)
                         related_obj.save()
-
-                        if related_translations:
-                            for t in related_translations:
-                                t.pk = None
-                                t.master = related_obj
-                                t.save()
 
                 messages.success(
                     request, f"Successfully duplicated {original_label} {model_name}"

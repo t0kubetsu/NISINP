@@ -3,7 +3,6 @@ from django.db import models
 from django.test import Client
 from django.urls import get_resolver
 from django.utils.translation import activate
-from parler.models import TranslatableModel
 
 
 @pytest.fixture
@@ -178,12 +177,9 @@ def get_or_create_related(related_model, val: dict):
             if k not in lookup:
                 setattr(obj, k, v)
 
-        # update translations
-        if isinstance(obj, TranslatableModel):
-            obj.set_current_language("en")
-            for f in obj._parler_meta.get_translated_fields():
-                if f in val:
-                    setattr(obj, f, val[f])
+        # With django-modeltranslation, translated fields are stored as field suffixes
+        # They will be set directly via setattr() with _en, _fr, _nl, _de suffixes
+        # No special translation handling needed
 
         obj.save()
 
@@ -220,14 +216,11 @@ def import_from_json(model, data, import_not_null=False, only_simple_field=True)
 
         obj = model.objects.create(**lookup)
 
-        # Traduction
-        if isinstance(obj, TranslatableModel):
-            obj.set_current_language("en")
-            for f in obj._parler_meta.get_translated_fields():
-                if f in entry:
-                    setattr(obj, f, entry[f])
+        # With django-modeltranslation, translated fields are stored as field suffixes
+        # They will be set directly via setattr() with _en, _fr, _nl, _de suffixes
+        # No special translation handling needed at this stage
 
-        # normak field and FK
+        # normal field and FK
         for field in model._meta.get_fields():
             fname = field.name
             if fname in lookup or fname not in entry:
