@@ -556,7 +556,7 @@ class ImpactResource(TranslationUpdateMixin, resources.ModelResource):
 
     class Meta:
         model = Impact
-        fields = ("id", "regulations", "headline", "sectors")
+        fields = ("id", "regulations", "label", "headline", "sectors")
 
 
 class ImpactSectorListFilter(SimpleListFilter):
